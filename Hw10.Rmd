@@ -1,0 +1,68 @@
+---
+title: "Hw10"
+author: "Xinrui Hu"
+date: "2023-12-11"
+output: word_document
+---
+
+```{r message=FALSE}
+library(haven)
+library(survival)
+library(ggsurvfit)
+df <- read_dta("event1.dta")
+```
+
+```{r}
+#1
+summary(df$marriage)
+#The min is 1, mean is 95.51, and max is 1071.
+```
+
+```{r}
+#2
+summary((df$evermarr))
+# No subjects were cencered
+```
+
+```{r}
+#3
+survfit(Surv(marriage, evermarr) ~ 1, data = df) %>% 
+ggsurvfit() + labs( x = "Days", y = "Overall survival probability" ) +
+  add_confidence_interval()
+```
+
+```{r}
+#4
+survfit(Surv(marriage, evermarr) ~ 1, data = df)
+survfit(Surv(marriage, evermarr) ~ 1, data = df) %>% 
+  ggsurvfit() + labs( x = "Days", y = "Overall survival probability" ) +
+  add_confidence_interval()+geom_hline(yintercept = 0.5, color = "red")
+# The median survival time is 34
+```
+
+```{r}
+# 5
+summary(survfit(Surv(marriage, evermarr) ~ 1, data = df), times = 1070)
+# The rate at 1070 days are 0.0169%
+```
+
+```{r}
+# 6
+survdiff(Surv(marriage, evermarr) ~ cohab, data = df)
+#There was a insignificant difference in overall survival among the cohab categories, as chisq = 0.487 p-value = 0.5  
+```
+
+```{r}
+# 7
+fit_cox <- coxph(Surv(marriage, evermarr) ~ cohab, data = df)
+fit_cox
+# The hazard ratio is 0.78 indicates that cohabit participants have a lower hazard of participants who not cohabit and the p-value = 0.3764, we concluded that cohabitation doesn’t predict the time to marry.
+```
+
+```{r}
+# 8
+fit_cox1 <- coxph(Surv(marriage, evermarr) ~ .-caseid, data = df)
+fit_cox1
+# The p-value of educate is greater than 0.05, we can concluded that educate cannot predict time to marriage.
+```
+

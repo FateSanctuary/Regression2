@@ -1,0 +1,54 @@
+---
+title: "Hw8"
+author: "Xinrui Hu"
+date: "2023-11-17"
+output: word_document
+---
+
+```{r message=FALSE, warning=FALSE}
+library(haven)
+library(psych)
+library(foreign)
+library(MASS)
+library(lmtest)
+library()
+data <- read_dta("CH11_Gabel.dta")
+```
+
+```{r}
+# a)
+model <- glm(EX_SUM ~ factor(SEX) + LBP + SEX:LBP, family = "poisson", data = data)
+model1 <- glm(EX_SUM ~ factor(SEX) + LBP, family = "poisson", data = data)
+lrtest(model1,model)
+#There was not a statistically significant improvement for including the interaction term in the model 
+```
+```{r}
+# b)
+summary(model)
+# The p-value of LBP is lower than 0.05 which is significant while the sex and LBP*sex are not significant
+```
+```{r}
+#c)
+nb_model <- glm.nb(EX_SUM ~ SEX + LBP + SEX:LBP, data = data)
+summary(nb_model)
+lrtest(model,nb_model)
+# The result of the negative binomial regression is the same as the binomial regression one.
+```
+```{r}
+#2
+#a)
+df <- read_dta("CH11_ELS2002_sm.dta")
+summary(df$GRDRPT)
+var(df$GRDRPT, na.rm = TRUE)
+# The variance and the mean of GRDRPT is about the same which meet the assumption of the poisson regression
+```
+```{r}
+#b)
+model <- glm(GRDRPT ~ factor(SEX) + RACE , family = "poisson", data = df)
+model1 <- glm(GRDRPT ~ factor(SEX) + RACE + SEX:RACE, family = "poisson", data = df)
+lrtest(model, model1)
+# There was not a statistically significant improvement for including the interaction term in the model, so we choose the original model
+summary(model)
+# The sex and race are significant as p value lower than 0.05
+```
+

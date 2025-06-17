@@ -1,0 +1,199 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+
+```{r}
+suppressMessages(library(psych))
+suppressMessages(library(dplyr))
+suppressMessages(library(tidyverse))
+suppressMessages(library(ResourceSelection))
+suppressMessages(library(lmtest))
+suppressMessages(library(VGAM))
+```
+
+
+####Case 1
+
+###Data Preparation
+
+##Data importing and cleaning
+```{r}
+df <- read.csv("MIDUS_III_Final_Exam_Fall2023_data.csv") %>% drop_na
+df1 <- df[,c("heart", "bp", "smoke", "age", "male", "exercise")]
+```
+
+#Data Description
+```{r}
+describe(df1)
+lapply(df1[-4], table)
+```
+
+#Bivariable Analysis
+```{r}
+cor(df1,method = "spearman")[1, 2:6, drop = F]
+```
+heart is more related with bp and age
+
+
+###Step1
+
+##Modeling
+```{r}
+#Since the outcome variable is binary, choose logistic regression (glm)
+model1 <- glm(heart ~ ., family = binomial, data = df1)
+summary(model1)
+```
+
+
+###Step2
+
+##Modeling
+```{r}
+#Since the outcome variable is binary, choose logistic regression (glm)
+model2 <- glm(heart ~ . + smoke*male, family = binomial, data = df1)
+summary(model2)
+```
+
+
+###Step3
+
+##Model fit
+```{r}
+#test overall model fit
+hoslem.test(model1$y, model1$fitted.values)
+hoslem.test(model2$y, model2$fitted.values)
+
+#comparing 2 models
+lmtest::lrtest(model2, model1)
+```
+The Hosmer and Lemeshow Test result (p = 0.095 and 0.091) indicates that 2 models are good fit.
+
+The likelihood ratio test has p-value = 0.0134, so we reject the null hypothesis and concludes that model2 (interaction effect model) has better fit.
+
+
+##Check outliers
+```{r include=FALSE}
+#unique(which(abs(rstandard(model1)) > 2))
+#unique(which(abs(rstandard(model2)) > 2))
+# Calculate Pearson Residuals
+pearson_res1 <- residuals(model1, type = "pearson")
+pearson_res2 <- residuals(model2, type = "pearson")
+
+outlier_threshold1 <- 2 * sd(pearson_res1)
+outliers1 <- which(abs(pearson_res1) > outlier_threshold1)
+df1[outliers1, ]
+
+outlier_threshold2 <- 2 * sd(pearson_res2)
+outliers2 <- which(abs(pearson_res2) > outlier_threshold2)
+df1[outliers2, ]
+
+# Calculate Deviance Residuals
+deviance_res1 <- residuals(model1, type = "deviance")
+deviance_res2 <- residuals(model2, type = "deviance")
+
+outlier_threshold1 <- 2 * sd(deviance_res1)
+outliers1 <- which(abs(deviance_res1) > outlier_threshold1)
+df1[outliers1, ]
+
+outlier_threshold2 <- 2 * sd(deviance_res2)
+outliers2 <- which(abs(deviance_res2) > outlier_threshold2)
+df1[outliers2, ]
+```
+
+
+```{r}
+# Cook's distance
+cooksd1 <- cooks.distance(model1)
+plot(cooksd1, type="h", main="Cook's Distance") %>% 
+abline(h = 4/(nrow(df1)-length(coef(model1))), col = "red", lty = 2)
+cooksd2 <- cooks.distance(model2)
+plot(cooksd2, type="h", main="Cook's Distance") %>% 
+abline(h = 4/(nrow(df1)-length(coef(model2))), col = "red", lty = 2)
+summary(cooksd1)
+summary(cooksd2)
+# We find the cook's distance is small suggests the outliers do not affect the model that much.
+```
+
+
+####Case 2
+
+###Data Preparation
+
+##Data importing
+```{r}
+df2 <- df[,c("health", "depress", "alcage", "cigage", "age", "bp")]
+```
+
+#Data Description
+```{r}
+describe(df2)
+lapply(df2[,c(1,2,6)], table)
+```
+
+#Bivariable Analysis
+```{r}
+cor(df2, method = "spearman")[1, 2:6, drop = F]
+```
+health is more related with depress and bp
+
+
+###Step1
+
+##Modeling
+```{r}
+#Since the outcome variable is multicategorical and ordered, we choose cumulative logit model (vglm)
+model3 <- vglm(health ~ ., family = cumulative(parallel = TRUE), data = df2)
+summary(model3)
+```
+
+
+###Step2
+```{r}
+#
+
+```
+
+
+###Step3
+
+##modeling
+```{r}
+model4 <- glm(bp ~ age + depress + factor(health), family = 'binomial', data = df2)
+summary(model4)
+```
+exp(-3.156634+0.043069age-0.135462depress+0.691221f2+1.098250f3+1.968987f4)
+Excellent (health = 1)
+1)age=64,depress=0
+Prob=$1/(1+exp(-(-3.156634+0.043069*64-0.135462*0)))=40.1\%$
+2)age=64,depress=1
+Prob=$1/(1+exp(-(-3.156634+0.043069*64-0.135462*1)))=36.9\%$
+Diff=$40.1\%-36.9\%=3.2%$
+
+Good (health = 2)
+1)age=64,depress=0
+Prob=$1/(1+exp(-(-3.156634+0.043069*64-0.135462*0+0.691221)))=57.2\%$
+2)age=64,depress=1
+Prob=$1/(1+exp(-(-3.156634+0.043069*64-0.135462*1+0.691221)))=53.9\%$
+Diff=$57.2\%-53.9\%=3.3%$
+
+Fair (health = 3)
+1)age=64,depress=0
+Prob=$1/(1+exp(-(-3.156634+0.043069*64-0.135462*0+1.098250)))=66.8\%$
+2)age=64,depress=1
+Prob=$1/(1+exp(-(-3.156634+0.043069*64-0.135462*1+1.098250)))=63.7\%$
+Diff=$66.8\%-63.7\%=3.1%$
+
+Poor (health = 4)
+1)age=64,depress=0
+df2$bp <- factor(df$bp, labels = lev
+Prob=$1/(1+exp(-(-3.156634+0.043069*64-0.135462*0+1.968987)))=82.8\%$
+2)age=64,depress=1
+Prob=$1/(1+exp(-(-3.156634+0.043069*64-0.135462*1+1.968987)))=80.7\%$
+Diff=$82.8\%-80.7\%=2.1%$
+
+
+
+

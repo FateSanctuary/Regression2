@@ -1,0 +1,100 @@
+---
+title: "HW7"
+author: "Xinrui Hu"
+date: "2023-11-10"
+output: word_document
+---
+
+```{r}
+library(rio)
+marij <-import(file = "Ch06_NELS88_Marijuanause.dta")
+marij$MJ[marij$MJ > 3] <- NA
+library(VGAM)
+```
+
+```{r}
+# Ex2
+fit_zach<-vglm(factor(MJ)~ ZACH,
+family = multinomial(refLevel = 1), data = marij)
+summary(fit_zach)
+```
+
+```{r}
+fit_zrr<-exp(coefficients(fit_zach))
+fit_zrr
+#The relative risk ratio (RRR) of using MJ on 3-19 occasions vs never used MJ decreases by a factor of(1-0.818) * 100% = 18.2% when ZACH increases 1 SD. 
+# The odds of using of MJ on 3-19 occasions among students with averaged achievement is 0.08
+#The relative risk ratio (RRR) of using MJ on 20 or more occasions vs never used MJ decreases by a factor of1-0.747=25.3% when ZACH increases 1 SD.
+#The odds of using of MJ on 20 or more occasions among students with averaged achievement is 0.05
+```
+Ex3
+
+```{r}
+# Ex4
+max(marij$ZACH, na.rm = TRUE)
+min(marij$ZACH, na.rm = TRUE)
+which.max(marij$ZACH)
+which.min(marij$ZACH)
+```
+
+```{r}
+predictedall <- fitted(fit_zach, na.rm = FALSE)
+predictedall["193",]
+#predictedall["21477",]
+#PI0 is 0.72
+#PI1 is 0.13
+#PI2 is 0.087
+#PI3 is 0.066
+#Min Sum is 0.72 + 0.13 + 0.087 + 0.066 = 1
+#Max Sum is 0.88 + 0.057 + 0.044 + 0.022 = 1
+```
+
+```{r}
+# Exercise 5
+library(haven)
+Spank <- read_dta("Lecture 8_Spanking_Gender.dta")
+fit_spank <- vglm(spanking ~ gender + educate + polviews + zage, family = cumulative(parallel = TRUE), data = Spank)
+summary(fit_spank)
+```
+After controlling for the effects of education, zscore of age and political views, the
+expected odds of strongly disagreeing are exp(-0.25) = 0.775 times
+among females versus among males.
+
+After controlling for the effects of gender, zscore of age and political views, each one-unit
+increase in education is associated with a {[1 - exp(-.11)]* 100%} = 11% decrease
+in the odds of strongly disagreeing.
+
+After controlling for the effects of gender, zscore of age and
+education, each one-unit increase in political view
+is associated with a {[exp(.22)-1]* 100%} = 24%
+increase in the odds of strongly disagreeing
+
+After controlling for the effects of gender, political views and
+education, each one-unit increase in z score of age
+is associated with a {[exp(.07)-1]* 100%} = 7%
+increase in the odds of strongly disagreeing
+```{r}
+# 8.2
+# a)
+tab <- matrix(c(833, 125, 2, 160), ncol=2, byrow=T)
+tab
+mcnemar.test(tab, correct=F)
+# Since p-value < 0.0001, the evidence is strong enough to reject the null hypothesis and the population proportion answering “yes” weren’t identical for heaven and hell.
+```
+```{r}
+#b)
+total = 162+125+833
+diff = 285/(total)-162/(total)
+SE = sqrt(127-(123^2)/(total))/(total)
+diff + c(-1, 1)*1.96*SE
+#We are 95% confidence that the probability of “yes” is at least 0.0912 and at most 0.128 for believe in heaven than in hell.
+```
+```{r}
+#c)
+abs(1-exp(log(((125+833)/(total-125-833))/((833+2)/(total-833-2)))))
+125/2
+# The odds of people belive in hevean is 101.8% higher than the belive in hell
+#The subject odds of people belief in heaven is 62.5 times higher than the subject odds of belief in hell.
+# Marginal models offer an average interpretation across the population, while subject-specific models provide an interpretation conditional on the random effects 
+```
+
